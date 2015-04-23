@@ -3,6 +3,7 @@
 namespace Omnipay\WorldPay\Message;
 
 use Omnipay\Common\Message\AbstractRequest;
+use Omnipay\Common\Exception\InvalidRequestException;
 
 /**
  * WorldPay Purchase Request
@@ -52,6 +53,16 @@ class PurchaseRequest extends AbstractRequest
         return $this->setParameter('callbackPassword', $value);
     }
 
+    public function getCustomParameters()
+    {
+        return $this->getParameter('customParameters');
+    }
+
+    public function setCustomParameters($value)
+    {
+        return $this->setParameter('customParameters', $value);
+    }
+
     public function getData()
     {
         $this->validate('amount', 'returnUrl');
@@ -83,6 +94,20 @@ class PurchaseRequest extends AbstractRequest
             $signature_data = array($this->getSecretWord(),
                 $data['instId'], $data['amount'], $data['currency'], $data['cartId']);
             $data['signature'] = md5(implode(':', $signature_data));
+        }
+
+        $customParameters = $this->getCustomParameters();
+
+        if ($customParameters) {
+            foreach ($customParameters as $key => $value) {
+                if (strpos($key, 'C_') === 0 ||
+                    strpos($key, 'M_') === 0 ||
+                    strpos($key, 'MC_') === 0) {
+                    $data[$key] = $value;
+                } else {
+                    throw new InvalidRequestException('Custom parameters must begin with either C_, M_ or MC_');
+                }
+            }
         }
 
         return $data;
